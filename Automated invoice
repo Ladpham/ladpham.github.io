@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Feb 2022
-
-@author: Ladpham
-"""
+// Made by Ladpham
+// Written in Python
+// In February 2022 
 
 # importing my tools
 from selenium import webdriver
