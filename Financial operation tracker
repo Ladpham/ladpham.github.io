@@ -1,0 +1,190 @@
+with buyers as (
+select distinct
+lp.id as company_id
+,c.legal_person_id
+,lp.name as company_name
+,lp.document_number as cnpj
+,crg.company_role
+from legal_person lp
+left join companies c on lp.id = c.legal_person_id
+left join company_role_grants crg on crg.company_id = c.id
+where company_role = 'buyer'
+)
+, sellers as (
+select distinct
+lp.id as company_id
+,c.legal_person_id
+,lp.name as company_name
+,lp.document_number as cnpj
+,crg.company_role
+from legal_person lp
+left join companies c on lp.id = c.legal_person_id
+left join company_role_grants crg on crg.company_id = c.id
+where company_role = 'seller'
+)
+, af_transaction_status as (
+select distinct
+status
+,case when status like 'pending' then 'awaiting_merchant_approval'
+     when status like 'approved' then 'merchant_approved_transaction'
+     when status like 'pending-nofunds' then 'merchant_does_not_have_limit'
+     when status like 'processing' then 'selecting_receivables_or_awaiting_registration_response'
+     when status like 'confirmed' then 'contracts_confirmed_by_registration'
+     when status like 'settled' then 'transaction_settled' end as af_transaction_status
+from invoices
+)
+, installments as (
+SELECT
+    seller_company.id as ins_seller_company_id,
+    seller_company.name AS seller_name,
+    s.cnpj as seller_cnpj,
+    buyer_company.id as buyer_company_id,
+    buyer_company.name AS buyer_name,
+    b.cnpj as buyer_cnpj,
+    invoice_id as transaction_id,
+    invoice_installments.amount_cents/100.00 as valor_parcela,
+    invoice_installments.settlement_date AS "data_parcela",
+    sum(CASE WHEN  settlement_entities.type = 'creditor' THEN settlement_contract_cashin.amount_cents/100.00 ELSE 0 END) AS amt_true,
+    sum(CASE 
+        WHEN invoice_installments.status <> 'settled' THEN NULL
+        WHEN settlement_contract_cashin IS NOT NULL AND (settlement_entities.type = 'acquirer' OR settlement_entities IS NULL) THEN settlement_contract_cashin.amount_cents/100.00 
+        ELSE 0 
+    END) AS amt_merchant,
+    RANK () OVER ( PARTITION BY invoice_id ORDER BY invoice_installments.settlement_date ASC) as parcela,
+    invoice_id,
+    settlement_date
+FROM
+    invoice_installments
+LEFT JOIN settlement_contract_cashin  ON invoice_installments.id = settlement_contract_cashin.invoice_installment_id
+LEFT JOIN settlement_cashin  ON settlement_contract_cashin.settlement_cashin_id = settlement_cashin.id
+LEFT JOIN settlement_entities ON settlement_cashin.entity_id = settlement_entities.id
+LEFT JOIN invoices on invoices.id = invoice_installments.invoice_id
+LEFT JOIN companies "seller_company" on invoices.seller_company_id = seller_company.id
+LEFT JOIN companies "buyer_company" on invoices.buyer_company_id = buyer_company.id
+LEFT JOIN buyers b on b.company_id = buyer_company.legal_person_id
+LEFT JOIN sellers s on s.company_id = seller_company.legal_person_id
+GROUP BY 1,2,3,4,5,6,7,8,9
+ORDER BY invoice_installments.settlement_date ASC
+)
+, final as (
+select distinct
+i.created_at as transaction_timestamp
+,cast(date_trunc('day',i.created_at) as date) as transaction_creation_day
+,cast(date_trunc('week',i.created_at) as date) as transaction_creation_week
+,cast(date_trunc('month',i.created_at) as date) as transaction_creation_month
+,cast(date_trunc('day',i.approved_at) as date) as transaction_approved_day
+,cast(date_trunc('week',i.approved_at) as date) as transaction_approved_week
+,cast(date_trunc('month',i.approved_at) as date) as transaction_approved_month
+,i.id as transaction_id
+,i.status
+,ts.af_transaction_status
+,i.seller_company_id
+,i.buyer_company_id
+,((i.amount_cents)/100.00) as TPV
+,i.installments
+,concat(to_char(i.service_fees/100.0,'990.99'),'%') as tp_price
+,(((i.amount_cents)/100)*i.service_fees/10000.0) as tp_revenue
+,ii.settlement_date
+,ii.valor_parcela as installment_value
+,RANK () OVER ( PARTITION BY i.id ORDER BY ii.settlement_date ASC) as installment_number
+from invoices i
+left join sellers s on s.legal_person_id = i.seller_company_id
+left join buyers b on b.legal_person_id = i.buyer_company_id
+left join installments ii on i.id = ii.invoice_id
+left join af_transaction_status ts on ts.status = i.status
+where seller_company_id <> 'e4cf41e9-2716-4dfa-a895-3fd938973114' 
+order by 1 asc, i.id, 13 asc
+)
+
+, bolepix as (select
+    ii.id as installment_id,
+    ii.invoice_id,
+    row_number() over(partition by ii.invoice_id order by ii.settlement_date asc) as r,
+    sum(boletos.amount_cents) as boletos_amount_cents,
+    max(boletos.settlement_date) as boletos_settlement_date,
+    sum(pix.amount_cents) as pix_amount_cents,
+    max(pix.settlement_date) as pix_settlement_date
+from invoices
+left join invoice_installments ii on ii.invoice_id = invoices.id
+left join boletos on boletos.invoice_installment_id = ii.id
+left join pix on pix.invoice_installment_id = ii.id
+group by 1,2)
+
+,payment as (select invoice_id
+    ,case
+        when r = 1 and coalesce(boletos_settlement_date, date('2000-01-01')) >= coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(boletos_settlement_date as varchar),null)
+        when r = 1 and coalesce(boletos_settlement_date, date('2000-01-01')) < coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(pix_settlement_date as varchar),null)
+        else null end as Maior_data1
+    ,case
+        when r = 2 and coalesce(boletos_settlement_date, date('2000-01-01')) >= coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(boletos_settlement_date as varchar),null)
+        when r = 2 and coalesce(boletos_settlement_date, date('2000-01-01')) < coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(pix_settlement_date as varchar),null)
+        else null end as Maior_data2
+    ,case
+        when r = 3 and coalesce(boletos_settlement_date, date('2000-01-01')) >= coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(boletos_settlement_date as varchar),null)
+        when r = 3 and coalesce(boletos_settlement_date, date('2000-01-01')) < coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(pix_settlement_date as varchar),null)
+        else null end as Maior_data3
+    ,case
+        when r = 4 and coalesce(boletos_settlement_date, date('2000-01-01')) >= coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(boletos_settlement_date as varchar),null)
+        when r = 4 and coalesce(boletos_settlement_date, date('2000-01-01')) < coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(pix_settlement_date as varchar),null)
+        else null end as Maior_data4
+    ,case
+        when r = 5 and coalesce(boletos_settlement_date, date('2000-01-01')) >= coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(boletos_settlement_date as varchar),null)
+        when r = 5 and coalesce(boletos_settlement_date, date('2000-01-01')) < coalesce(pix_settlement_date, date('2000-01-01')) then coalesce(cast(pix_settlement_date as varchar),null)
+        else null end as Maior_data5
+    ,sum(case when r=1 then coalesce(boletos_amount_cents,0) + coalesce(pix_amount_cents,0) else 0 end) as bolepix_installment_1
+    ,sum(case when r=2 then coalesce(boletos_amount_cents,0) + coalesce(pix_amount_cents,0) else 0 end) as bolepix_installment_2
+    ,sum(case when r=3 then coalesce(boletos_amount_cents,0) + coalesce(pix_amount_cents,0) else 0 end) as bolepix_installment_3
+    ,sum(case when r=4 then coalesce(boletos_amount_cents,0) + coalesce(pix_amount_cents,0) else 0 end) as bolepix_installment_4
+    ,sum(case when r=5 then coalesce(boletos_amount_cents,0) + coalesce(pix_amount_cents,0) else 0 end) as bolepix_installment_5
+from bolepix
+group by 1,2,3,4,5,6)
+
+select distinct
+f.transaction_id
+,f.transaction_timestamp
+,f.transaction_creation_day
+,f.transaction_creation_week
+,f.transaction_creation_month
+,f.transaction_approved_day
+,f.transaction_approved_week
+,f.transaction_approved_month
+,f.status
+,f.af_transaction_status
+,i.seller_name
+,i.seller_cnpj
+,i.buyer_name
+,i.buyer_cnpj
+,f.TPV
+,f.installments
+,f.tp_price
+,f.tp_revenue
+,min(case when f.installment_number = 1 then f.settlement_date end) as first_installment_date
+,min(case when f.installment_number = 2 then f.settlement_date end) as second_installment_date
+,min(case when f.installment_number = 3 then f.settlement_date end) as third_installment_date
+,min(case when f.installment_number = 4 then f.settlement_date end) as fourth_installment_date
+,min(case when f.installment_number = 5 then f.settlement_date end) as fifth_installment_date
+,min(case when f.installment_number = 1 then f.installment_value end) as first_installment_amt
+,min(case when f.installment_number = 2 then f.installment_value end) as second_installment_amt
+,min(case when f.installment_number = 3 then f.installment_value end) as third_installment_amt
+,min(case when f.installment_number = 4 then f.installment_value end) as fourth_installment_amt
+,min(case when f.installment_number = 5 then f.installment_value end) as fifth_installment_amt
+,min(case when i.parcela = 1 and valor_parcela <> 0 then (1-(amt_merchant/valor_parcela))*1.00 end) as first_installment_paid_true
+,min(case when i.parcela = 2 and valor_parcela <> 0 then (1-(amt_merchant/valor_parcela))*1.00 end) as second_installment_paid_true
+,min(case when i.parcela = 3 and valor_parcela <> 0 then (1-(amt_merchant/valor_parcela))*1.00 end) as third_installment_paid_true
+,min(case when i.parcela = 4 and valor_parcela <> 0 then (1-(amt_merchant/valor_parcela))*1.00 end) as fourth_installment_paid_true
+,min(case when i.parcela = 5 and valor_parcela <> 0 then (1-(amt_merchant/valor_parcela))*1.00 end) as fifth_installment_paid_true
+,sum(p.bolepix_installment_1)/(f.installments*100) as bolepix_installment_1
+,sum(p.bolepix_installment_2)/(f.installments*100) as bolepix_installment_2
+,sum(p.bolepix_installment_3)/(f.installments*100) as bolepix_installment_3
+,sum(p.bolepix_installment_4)/(f.installments*100) as bolepix_installment_4
+,sum(p.bolepix_installment_5)/(f.installments*100) as bolepix_installment_5
+,max(date(p.Maior_data1)) as data_bolepix_1
+,max(date(p.Maior_data2)) as data_bolepix_2
+,max(date(p.Maior_data3)) as data_bolepix_3
+,max(date(p.Maior_data4)) as data_bolepix_4
+,max(date(p.Maior_data5)) as data_bolepix_5    
+from final f
+left join installments i on f.transaction_id = i.transaction_id and f.installment_number = i.parcela
+left join payment as p on p.invoice_id = f.transaction_id
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+order by 2 asc
