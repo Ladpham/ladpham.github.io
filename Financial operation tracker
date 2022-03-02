@@ -1,5 +1,5 @@
- -- Financial Query written with SQL 
-
+// Made by Ladpham
+// Written in SQL
 
 
 with buyers as (
