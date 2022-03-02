@@ -1,0 +1,277 @@
+// Made by Ladpham
+// In November 2021 
+
+var mailApp=MailApp;
+var app=SpreadsheetApp;
+var spreadsheet=app.getActiveSpreadsheet();
+var sheet=spreadsheet.getSheetByName("Email");
+var ui=app.getUi();
+
+ // Creation of a button
+function onOpen(e)
+{
+ui.createMenu("Emails").addItem("Enviar Email", "sendMails").addToUi();
+}
+
+function sendMails() {
+
+//Adding the formatting style of the numbers
+  var values=sheet.getDataRange().getValues();
+  for (var row=0; row < values.length; row++){
+    if(row > 0) {
+      var dueDateraw = new Date(values[row][11])
+      var Recipient = values[row][0]
+      var parcelaValue = values[row][10].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      var totalValue = values[row][12].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      // var parcelaValue = new  Intl.NumberFormat('br-BR', { style: 'currency', currency: }).format(values[row][10]);
+      var ApproveDateraw = new Date(values[row][9])
+        var DueDate = Utilities.formatDate(dueDateraw, "GMT-3", "dd/MM/yyyy");
+        var ApproveDate = Utilities.formatDate(ApproveDateraw, "GMT-3", "dd/MM/yyyy");
+        
+        
+  
+      mailApp.sendEmail({
+        to: Recipient,
+        subject: "Vencimento da sua parcela",
+        
+//Body of the email
+        htmlBody: `<body style="background-color: #f4f4f5;">
+<table cellpadding="0" cellspacing="0"
+       style="width: 100%; height: 100%; background-color: #f4f4f5; text-align: center;">
+    <tbody>
+    <tr>
+        <td style="text-align: center;">
+            <table align="center" cellpadding="0" cellspacing="0" id="body"
+                   style="background-color: #fff; width: 100%; max-width: 680px; height: 100%;">
+                <tbody>
+                <tr>
+                    <td>
+                        <table align="center" cellpadding="0" cellspacing="0" class="page-center"
+                               style="text-align: left; padding-bottom: 88px; width: 100%; padding-left: 120px; padding-right: 120px;">
+                            <tbody>
+                            <tr>
+                                <td style="padding-top: 24px;">
+                                    <img src="https://truepay.com.br/truepay.png" style="width: 150px;">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #9095a2; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                    
+                                </td>
+                            </tr>
+                            <tr bgcolor= #FF7A00>
+                                <td colspan="2"
+                                    style="padding-top: 30px; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #FFFFFF; font-family: 'Inter', sans-serif; font-size: 30px; font-smoothing: always; font-style: normal; font-weight: 600; letter-spacing: -1px; line-height: 38,4px; mso-line-height-rule: exactly; text-decoration: none;">
+                                    O vencimento da sua parcela vai chegar em breve
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #FF7A00; font-family: 'Inter', sans-serif; font-size: 30px; font-smoothing: always; font-style: normal; font-weight: 500; letter-spacing: -0.18px; line-height: 28px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                    Olá, `+values[row][1]+`
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000
+; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                    Tudo bem por aí?
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding-top: 10px; padding-bottom: 10px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                    Você fez uma compra de `+totalValue+`, a pagar em `+values[row][13]+` parcelas com `+values[row][8]+` em `+ApproveDate+` e estamos te enviando esse email para lembrar que daqui a <b>`+values[row][14]+`</b> dias, a `+values[row][15]+` parcela irá vencer!
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 10px; padding-bottom: 10px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                    Aqui vai um pequeno resumo de datas e valores do seu pedido para você se organizar:
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 10px; padding-bottom: 10px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr bgcolor= #F5F5F5>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                    Parcela: `+values[row][7]+` de `+values[row][13]+`
+                                </td>
+                               
+                            </tr>
+                            <tr bgcolor= #F5F5F5>
+                                <td   style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr bgcolor= #F5F5F5>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                   - Valor máximo do pagamento: `+parcelaValue+`
+                                  
+                                </td>
+                                
+                            </tr>
+                            <tr bgcolor= #F5F5F5>
+                                <td   style="padding-top: 15px; padding-bottom: 5px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                           
+                            <tr bgcolor= #F5F5F5>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                       - Dia do Vencimento `+DueDate+` 
+                                </td>
+                              
+                            </tr>
+                            <tr bgcolor= #F5F5F5>
+                                <td   style="padding-top: 15px; padding-bottom: 5px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                `+values[row][19]+`
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                  Queremos ressaltar que tentaremos abater o valor da parcela com o saldo das suas maquininhas, mas nem sempre é possível. Caso haja algum valor em aberto, podemos oferecer PIX para quitar o valor em aberto, mas fique tranquilo/a, o valor que será pago nunca vai ultrapassar o valor da compra!
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                Esse email é só um lembrete então não se preocupe, entraremos em contato próximo ao vencimento pra te lembrar de novo todos esses detalhes.
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                   Estamos sempre à disposição para qualquer dúvida, se precisar basta responder esse email ou entrar em contato através do nosso Whatsapp no numero (11)94380-0321.
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                   <br> Atenciosamente,</br>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #000000; font-family: 'Inter', sans-serif; font-size: 16px; font-smoothing: always; font-style: normal; font-weight: 400; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                  <br> O time de Cobranças de Truepay.</br>
+      
+
+                                </td>
+                            </tr>
+ 							<tr>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr bgcolor= #000000>
+                                <td style="padding-top: 10px;">
+                                    <img src="https://res.cloudinary.com/crunchbase-production/image/upload/c_lpad,h_170,w_170,f_auto,b_white,q_auto:eco,dpr_1/fwq4d8axx2flnpgb4msc" style="width: 100px;">
+                                </td>
+                            </tr>
+                            <tr bgcolor= #000000>
+                                <td style="-ms-text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #FFFFFF; font-family: 'Inter', sans-serif; font-size: 25px; font-smoothing: always; font-style: normal; font-weight: 700; letter-spacing: -0.18px; line-height: 24px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: top; width: 100%;">
+                                  <br> Construir uma realidade onde empreender no Brasil não seja mais uma missão impossível</br>
+
+                                </td>
+                            </tr>
+							<tr bgcolor= #000000>
+                                <td style="padding-top: 20px; padding-bottom: 20px;">
+                                    <table cellpadding="0" cellspacing="0" style="width: 100%">
+                                    </table>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</table>
+ 
+ 
+</body>`,
+      });
+    }
+  }
+}
+ 
+function getQuota()
+{
+Logger.log(mailApp.getRemainingDailyQuota());
+}
+
+
