@@ -1,3 +1,7 @@
+ -- Financial Query written with SQL 
+
+
+
 with buyers as (
 select distinct
 lp.id as company_id
