@@ -1,4 +1,5 @@
 // Made by Ladpham
+// Written in HTML, CSS and Javascript
 // In November 2021 
 
 var mailApp=MailApp;
