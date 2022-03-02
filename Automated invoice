@@ -1,0 +1,145 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Feb 2022
+
+@author: Ladpham
+"""
+
+# importing my tools
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import pandas as pd
+import pyautogui
+import json
+import re
+
+
+#Locate the CSV to read
+file = pd.read_csv(r"C:\Users\True\Downloads\nf00.csv")
+
+
+#Printing function to save the Invoice as a pdf
+appState = {
+    "recentDestinations": [
+        {
+            "id": "Save as PDF",
+            "origin": "local"
+        }
+    ],
+    "selectedDestinationId": "Save as PDF",
+    "version": 2,
+    'download.default_directory': r'C:\Users\True\Documents\NFs PDF',
+    "download.prompt_for_download": False, #To auto download the file
+    "download.directory_upgrade": True,
+    "plugins.always_open_pdf_externally": True #It will not show PDF directly in chrome
+}
+
+profile = {'printing.print_preview_sticky_settings.appState': json.dumps(appState)}
+
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_experimental_option('prefs', profile)
+chrome_options.add_argument('--kiosk-printing')
+
+#Defining a function to click enter
+def threaded_function2():
+    #Presses 10 times
+    for i in range(0,10):
+        pyautogui.press('enter')
+
+
+#Get the browser to use Selenium
+PATH = "C:\chromedriver.exe"
+driver = webdriver.Chrome(PATH, chrome_options=chrome_options)
+
+
+
+#Calling Selenium to click and enter on the right pages
+link = driver.find_element_by_id("ctl00_body_hlLogin")
+link.click()
+
+ 
+element = WebDriverWait(driver,10).until(
+    EC.presence_of_element_located((By.LINK_TEXT, "CLICANDO AQUI"))
+    )
+element.click()
+
+threaded_function2()
+
+
+element = WebDriverWait(driver,10).until(
+    EC.presence_of_element_located((By.NAME, "ctl00$body$btAcesso")) #Acessar o sistema
+    )
+element.click()
+
+element = WebDriverWait(driver,10).until(
+    EC.presence_of_element_located((By.LINK_TEXT, "Emissão de NFS-e"))
+    )
+element.click()
+
+#Creating a loop
+for i, row in file.iterrows():
+    
+    seller_cnpj = str(file["seller_cnpj"][i])
+    text_fin = str("Cobrança referente a transação com ")
+    buyer = str(file["buyer_name"][i])
+    value = str(file["tp_revenue"][i])
+    seller = str(file["seller_name"][i])
+    
+    
+    
+    search = driver.find_element_by_name("ctl00$body$tbCPFCNPJTomador")
+    search.send_keys(seller_cnpj) 
+    search.send_keys(Keys.RETURN)
+    
+    element = WebDriverWait(driver,10).until(
+        EC.presence_of_element_located((By.NAME, "ctl00$body$btAvancar")) #Acessar o sistema
+        )
+    element.click()
+    
+    
+    
+    search = driver.find_element_by_name("ctl00$body$tbDiscriminacao")
+    search.send_keys(text_fin + buyer) 
+    search.send_keys(Keys.RETURN)
+    
+    search = driver.find_element_by_name("ctl00$body$tbValor")
+    search.send_keys(value) 
+    search.send_keys(Keys.RETURN)
+    
+    element = WebDriverWait(driver,10).until(
+        EC.presence_of_element_located((By.NAME, "ctl00$body$btEmitir")) #aceitar nf
+        )
+    element.click()
+    
+    time.sleep(1)
+    pyautogui.press('enter');
+    
+    
+    #Getting the number of the invoice in the URL
+    time.sleep(1)
+    current_url = driver.current_url #print url
+    copy_url = re.findall(r"(?:https:\/\/nfe\.prefeitura\.sp\.gov\.br\/contribuinte\/notaprint\.aspx\?nf=)(\d*)(?:&ins.*)",current_url)
+    nf_number = copy_url[0]
+
+    
+    
+    #PRINT
+    chrome_options.add_experimental_option('prefs', profile)
+    chrome_options.add_argument('--kiosk-printing')
+    
+    
+    #driver.execute_script('document.title="{}";'.format("nf");        
+    driver.execute_script('window.print();')
+    time.sleep(2)
+    pyautogui.write('NF '+ nf_number +' - '+seller + ' e ' + buyer )
+    pyautogui.press('enter')
+    
+    element = WebDriverWait(driver,10).until(
+        EC.presence_of_element_located((By.NAME, "ctl00$cphBase$btVoltar")) #para voltar
+        )
+    element.click()
+        
