@@ -9,10 +9,10 @@ lp.id as company_id
 ,lp.name as company_name
 ,lp.document_number as cnpj
 ,crg.company_role
-from legal_person lp
-left join companies c on lp.id = c.legal_person_id
-left join company_role_grants crg on crg.company_id = c.id
-where company_role = 'buyer'
+from X lp
+left join X c on lp.X = c.X
+left join X crg on crg.X = c.X
+where X = 'buyer'
 )
 , sellers as (
 select distinct
@@ -21,10 +21,10 @@ lp.id as company_id
 ,lp.name as company_name
 ,lp.document_number as cnpj
 ,crg.company_role
-from legal_person lp
-left join companies c on lp.id = c.legal_person_id
-left join company_role_grants crg on crg.company_id = c.id
-where company_role = 'seller'
+from X lp
+left join X c on lp.id = c.legal_person_id
+left join X crg on crg.company_id = c.id
+where X = 'seller'
 )
 , af_transaction_status as (
 select distinct
@@ -35,40 +35,40 @@ status
      when status like 'processing' then 'selecting_receivables_or_awaiting_registration_response'
      when status like 'confirmed' then 'contracts_confirmed_by_registration'
      when status like 'settled' then 'transaction_settled' end as af_transaction_status
-from invoices
+from X
 )
 , installments as (
 SELECT
-    seller_company.id as ins_seller_company_id,
-    seller_company.name AS seller_name,
+    X.id as ins_seller_company_id,
+    X.name AS seller_name,
     s.cnpj as seller_cnpj,
-    buyer_company.id as buyer_company_id,
-    buyer_company.name AS buyer_name,
+    X.id as buyer_company_id,
+    X.name AS buyer_name,
     b.cnpj as buyer_cnpj,
     invoice_id as transaction_id,
-    invoice_installments.amount_cents/100.00 as valor_parcela,
-    invoice_installments.settlement_date AS "data_parcela",
-    sum(CASE WHEN  settlement_entities.type = 'creditor' THEN settlement_contract_cashin.amount_cents/100.00 ELSE 0 END) AS amt_true,
+    X.amount_cents/100.00 as valor_parcela,
+    X.settlement_date AS "data_parcela",
+    sum(CASE WHEN  settlement_entities.type = 'creditor' THEN X.amount_cents/100.00 ELSE 0 END) AS amt_true,
     sum(CASE 
-        WHEN invoice_installments.status <> 'settled' THEN NULL
-        WHEN settlement_contract_cashin IS NOT NULL AND (settlement_entities.type = 'acquirer' OR settlement_entities IS NULL) THEN settlement_contract_cashin.amount_cents/100.00 
+        WHEN X.status <> 'settled' THEN NULL
+        WHEN settlement_contract_cashin IS NOT NULL AND (X.type = 'acquirer' OR settlement_entities IS NULL) THEN X.amount_cents/100.00 
         ELSE 0 
     END) AS amt_merchant,
-    RANK () OVER ( PARTITION BY invoice_id ORDER BY invoice_installments.settlement_date ASC) as parcela,
+    RANK () OVER ( PARTITION BY invoice_id ORDER BY X.settlement_date ASC) as parcela,
     invoice_id,
     settlement_date
 FROM
     invoice_installments
-LEFT JOIN settlement_contract_cashin  ON invoice_installments.id = settlement_contract_cashin.invoice_installment_id
-LEFT JOIN settlement_cashin  ON settlement_contract_cashin.settlement_cashin_id = settlement_cashin.id
-LEFT JOIN settlement_entities ON settlement_cashin.entity_id = settlement_entities.id
-LEFT JOIN invoices on invoices.id = invoice_installments.invoice_id
-LEFT JOIN companies "seller_company" on invoices.seller_company_id = seller_company.id
-LEFT JOIN companies "buyer_company" on invoices.buyer_company_id = buyer_company.id
-LEFT JOIN buyers b on b.company_id = buyer_company.legal_person_id
-LEFT JOIN sellers s on s.company_id = seller_company.legal_person_id
+LEFT JOIN X  ON X.id = X.invoice_installment_id
+LEFT JOIN X  ON X.settlement_cashin_id = X.id
+LEFT JOIN X ON X.entity_id = X.id
+LEFT JOIN X on invoices.id = X.invoice_id
+LEFT JOIN X "seller_company" on X.seller_company_id = X.id
+LEFT JOIN X "buyer_company" on X.buyer_company_id = X.id
+LEFT JOIN X b on b.company_id = X.legal_person_id
+LEFT JOIN X s on s.company_id = X.legal_person_id
 GROUP BY 1,2,3,4,5,6,7,8,9
-ORDER BY invoice_installments.settlement_date ASC
+ORDER BY X.settlement_date ASC
 )
 , final as (
 select distinct
@@ -92,11 +92,11 @@ i.created_at as transaction_timestamp
 ,ii.valor_parcela as installment_value
 ,RANK () OVER ( PARTITION BY i.id ORDER BY ii.settlement_date ASC) as installment_number
 from invoices i
-left join sellers s on s.legal_person_id = i.seller_company_id
-left join buyers b on b.legal_person_id = i.buyer_company_id
-left join installments ii on i.id = ii.invoice_id
-left join af_transaction_status ts on ts.status = i.status
-where seller_company_id <> 'e4cf41e9-2716-4dfa-a895-3fd938973114' 
+left join X s on s.legal_person_id = i.seller_company_id
+left join X b on b.legal_person_id = i.buyer_company_id
+left join X ii on i.id = ii.invoice_id
+left join X ts on ts.status = i.status
+where X <> 'e4cf41e9-2716-4dfa-a895-3fd938973114' 
 order by 1 asc, i.id, 13 asc
 )
 
@@ -104,14 +104,14 @@ order by 1 asc, i.id, 13 asc
     ii.id as installment_id,
     ii.invoice_id,
     row_number() over(partition by ii.invoice_id order by ii.settlement_date asc) as r,
-    sum(boletos.amount_cents) as boletos_amount_cents,
-    max(boletos.settlement_date) as boletos_settlement_date,
-    sum(pix.amount_cents) as pix_amount_cents,
-    max(pix.settlement_date) as pix_settlement_date
+    sum(X.amount_cents) as boletos_amount_cents,
+    max(X.settlement_date) as boletos_settlement_date,
+    sum(X.amount_cents) as pix_amount_cents,
+    max(X.settlement_date) as pix_settlement_date
 from invoices
-left join invoice_installments ii on ii.invoice_id = invoices.id
-left join boletos on boletos.invoice_installment_id = ii.id
-left join pix on pix.invoice_installment_id = ii.id
+left join X ii on ii.invoice_id = invoices.id
+left join X on X.invoice_installment_id = ii.id
+left join X on X.invoice_installment_id = ii.id
 group by 1,2)
 
 ,payment as (select invoice_id
