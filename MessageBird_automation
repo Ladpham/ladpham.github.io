@@ -1,0 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Mar 17 13:45:58 2022
+
+@author: True
+"""
+
+import messagebird
+import pandas as pd
+import time
+
+file = pd.read_csv(r"CXXXX")
+client = messagebird.Client('XXXX')
+conversationsIdList = []
+
+for i, row in file.iterrows():
+        
+    name = str(file["name"][i])
+    numero = str(file["telefone"][i])
+    ab = str(file["template"][i])
+    fornecedor = str(file["Fornecedor"][i])
+
+
+    conversation = client.conversation_start({
+        'channelId': 'XXXX',
+        'to': numero,
+        'type': 'hsm',
+        'content': {
+        "hsm": {
+            "namespace": "XXXX",
+            "templateName": "dia_do_vencimento_2"
+                ,
+            "language": {
+                "policy": "deterministic",
+                "code": "pt_BR"
+            },
+            "params": [
+                {
+                    "default": name
+                    
+                    },
+                {
+                    "default":fornecedor
+                    }
+                ]
+            }
+     }
+    })
+    
+    conversationsIdList.append(conversation.messages.lastMessageId)
+
+print('The following information was returned as a Conversation object:')
+print(conversation)
+
+messagesObjects = []
+
+
+for item in conversationsIdList :
+    print(item)
+    lastMessage = client.conversation_read_message(item)
+    print(lastMessage.status)
+    print(lastMessage.content)
+    
+    #conversationMessage = client.conversation_read(item)
+    valueDict1 = lastMessage.content['hsm']
+    valueDict2 = valueDict1['params']
+    valueDict = valueDict2[0]
+    valueDict['status'] = lastMessage.status
+    messagesObjects.append(valueDict)
+    
+df = pd.DataFrame(list(messagesObjects), columns = ['default','status'])
+print(df)
+ts = time.time()
+df.to_csv('content'+str(ts)+'.csv')
+""" 
+
+Para checkar 
+lastMessage = client.conversation_read_message('ID do mensagem')
+print(lastMessage.status)
+print(lastMessage.content)
+
+
+"""
