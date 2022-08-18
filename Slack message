@@ -1,0 +1,44 @@
+-- send programmed message on slcak
+
+import slack
+
+
+SLACK_API_TOKEN = "XXXXXx"
+
+
+part1 = '*Conceito do dia - Amortização *:star2:'
+part2 = '\nAmortização é o recebimento do pagamento e o reconhecimento da redução da dívida do cliente. \nHoje usamos 3 formas para receber o dinheiro do cliente, Recebíveis, PIX e Boleto.'
+part3 = '\n*E aí? qual foi a distribuição dessa formas de pagamento no mês de julho 2022?:* (emoji vote)'
+part4 = '\n:alphabet-yellow-a: 33% Recebíveis / 33% PIX / 33% Boletos\n:alphabet-yellow-b: 5% Recebíveis / 85% PIX / 10% Boletos\n:alphabet-yellow-c: 10% Recebíveis / 65% PIX / 25% Boletos '
+part5 = '\nA resposta certa foi …. :alphabet-yellow-c: :drum_with_drumsticks:, acertou ? Agora é contigo, Truta. Na sua opinião, qual seria a distribuição ideal? Luana alguma ideia?\n Outra coisa, temos uma nova árvore disponível para vocês. :foguetino: <https://datastudio.google.com/u/0/reporting/d3a17d8e-051c-44aa-a27f-67d239dec5ca/page/p_ca4axwenxc|Olha aqui>'
+
+
+client = slack.WebClient(token=SLACK_API_TOKEN)
+
+canal = '#company-okr'   #company-okr #testttt
+hora  = 1660847400 #EPOCH timestamp            https://www.epochconverter.com/
+
+response1 = client.chat_scheduleMessage( 
+    channel=canal,
+    post_at=str(hora), 
+    text=part1+' <!here>'+part2)
+if(response1["ok"]):   
+    print("Notification 1 sent to Slack")
+
+
+response2 = client.chat_scheduleMessage(
+    channel=canal, 
+    post_at=str(hora+5), 
+    text=part3+part4)
+if(response2["ok"]):   
+    print("Notification 2 sent to Slack")
+
+response3 = client.chat_scheduleMessage( 
+    channel=canal, 
+    post_at=str(hora+5400),
+    text='<!here>'+part5)
+if(response3["ok"]):   
+    print("Notification 3 sent to Slack")
+
+
+
